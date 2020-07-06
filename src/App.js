@@ -5,6 +5,7 @@ import Subject from "./components/Subject";
 import Control from './components/Control';
 import ReadContent from "./components/ReadContent";
 import CreateContent from './components/CreateContent';
+import UpdateContent from './components/UpdateContent';
 
 class App extends Component {
   //초기화 시켜주고 싶은 것들을 cons안에 코딩한다
@@ -24,30 +25,27 @@ class App extends Component {
       ]
     }
   }
-  // handleClick = (e) =>{
-  //   e.preventDefault();
-  //   this.setState({
-  //     mode:'welcome'
-  //   });
-  // }
-  render(){
-    let _title, _desc, _article = null;
+
+  getReadContent(){
+    let i = 0;
+    while(i < this.state.contents.length){
+      let data = this.state.contents[i];
+      if(data.id === this.state.selected_content_id){
+        return data;
+      }
+      i++;
+    }
+  }
+
+  getContent(){
+    let _title, _desc, _article, _content = null;
     if(this.state.mode === 'welcome'){
       _title = this.state.welcome.title;
       _desc = this.state.welcome.desc;
       _article = <ReadContent title={_title} desc={_desc}></ReadContent>
     }else if(this.state.mode === 'read'){
-      let i = 0;
-      while(i < this.state.contents.length){
-        let data = this.state.contents[i];
-        if(data.id === this.state.selected_content_id){
-          _title = data.title;
-          _desc = data.desc;
-          break;
-        }
-        i++;
-      }
-      _article = <ReadContent title={_title} desc={_desc}></ReadContent>
+      _content = this.getReadContent();
+      _article = <ReadContent title={_content.title} desc={_content.desc}></ReadContent>
     }else if(this.state.mode === 'create'){
       _article = <CreateContent onSubmit={function(_title, _desc){
         this.max_content_id++;
@@ -57,10 +55,32 @@ class App extends Component {
           desc:_desc
         })
         this.setState({
-          contents:_contents
+          contents:_contents,
+          mode:'read',
+          selected_content_id:this.max_content_id
         });
       }.bind(this)}></CreateContent>
+    }else if(this.state.mode === 'update'){
+      _content = this.getReadContent();
+      _article = <UpdateContent data={_content} onSubmit={
+        function(_id, _title, _desc){
+          let _contents = Array.from(this.state.contents);
+          for(let i = 0; i < _contents.length; i++){
+            if(_contents[i].id === _id){
+              _contents[i] = {id:_id, title:_title, desc:_desc};
+              break;
+            }
+          }          
+          this.setState({
+            contents:_contents,
+            mode:'read'
+          });
+        }.bind(this)}></UpdateContent>
     }
+    return _article;
+  }
+
+  render(){
     return (
       <div className="App">
         <Subject
@@ -71,10 +91,6 @@ class App extends Component {
           }.bind(this)}
         >
         </Subject>
-        {/* <header>
-          <h1><a href="/" onClick={this.handleClick}>{this.state.subject.title}</a></h1>
-          {this.state.subject.sub}
-        </header> */}
         <TOC
           onChangePage={function(id){
             this.setState({
@@ -87,11 +103,27 @@ class App extends Component {
         </TOC>
         <Control
           onChangeMode={function(_mode){
-            this.setState({
-              mode:_mode
-            })
+            if(_mode === 'delete'){
+              if(window.confirm('really?')){
+                let _contents = Array.from(this.state.contents);
+                for(let i = 0; i < _contents.length; i++){
+                  if(_contents[i].id === this.state.selected_content_id){
+                    _contents.splice(i, 1);
+                    break;
+                  }
+                }
+                this.setState({
+                  mode:'welcome',
+                  contents:_contents
+                })
+              }
+            }else{
+              this.setState({
+                mode:_mode
+              });
+            }
         }.bind(this)}></Control>
-        {_article}
+        {this.getContent()}
       </div>
     );
   }
